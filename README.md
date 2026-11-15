@@ -16,4 +16,15 @@ CareTrack is a web application that helps users manage medicine schedules and re
 ## ▶️ Run Locally
 ```bash
 npm install
-node server.js
+npm start
+```
+
+Create a `.env` file with your OpenAI key (needed for the Medicine Info page):
+
+```
+OPENAI_API_KEY=your-key-here
+```
+
+Then open http://localhost:3000 in your browser.
+
+> Reminders are stored in your browser and fire while any CareTrack page is open.

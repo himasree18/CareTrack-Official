@@ -31,15 +31,17 @@
       resultDiv.textContent = "Fetching information... Please wait.";
 
       try {
-        const response = await fetch("http://localhost:3000/medicine-info", {
+        const response = await fetch("/medicine-info", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ medicine: medicineName }),
         });
 
-        if (!response.ok) throw new Error("Network response was not ok");
-
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          resultDiv.textContent = data.error || "Error fetching medicine info. Please try again.";
+          return;
+        }
         resultDiv.textContent = data.info;
       } catch (error) {
         resultDiv.textContent = "Error fetching medicine info. Please try again.";
@@ -48,5 +50,6 @@
     });
   </script>
 
+  <script src="reminder-alarm.js"></script>
 </body>
 </html>

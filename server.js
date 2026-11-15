@@ -4,19 +4,30 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import OpenAI from "openai";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Load environment variables from .env file
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Initialize Express app
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve the frontend pages from the same server (so API calls use relative URLs)
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "welcome.html")));
+const PUBLIC_FILES = /^\/(?:[\w-]+\.html|reminder-alarm\.js|alarm\.mp3)$/;
+const serveStatic = express.static(__dirname, { dotfiles: "deny", index: false });
+app.use((req, res, next) => (PUBLIC_FILES.test(req.path) ? serveStatic(req, res, next) : next()));
+
 // OpenAI configuration
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// The key is optional: without it the app still runs, only Medicine Info is disabled.
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 // API endpoint to fetch medicine info
 app.post("/medicine-info", async (req, res) => {
@@ -24,6 +35,12 @@ app.post("/medicine-info", async (req, res) => {
 
   if (!medicine) {
     return res.status(400).json({ error: "Medicine name is required" });
+  }
+
+  if (!openai) {
+    return res.status(503).json({
+      error: "Medicine info is unavailable: OPENAI_API_KEY is not set in the .env file.",
+    });
   }
 
   try {

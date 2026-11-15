@@ -5,12 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Reminder - CareTrack</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Ensure modal is on top */
-    #snoozeModal {
-      z-index: 9999;
-    }
-  </style>
 </head>
 <body class="bg-blue-100 min-h-screen font-sans">
 
@@ -62,42 +56,8 @@
     </form>
   </section>
 
-  <!-- Alarm Sound -->
-  <audio id="alarmSound" src="alarm.mp3" preload="auto"></audio>
-
-  <!-- Snooze Modal -->
-  <div id="snoozeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-2xl p-8 shadow-lg w-full max-w-md text-center">
-      <h2 class="text-2xl font-bold mb-4 text-blue-800">⏰ Medicine Reminder</h2>
-      <p id="snoozeMedicine" class="text-lg mb-4"></p>
-      <p id="snoozeNote" class="text-gray-700 mb-6"></p>
-
-      <div class="flex justify-center space-x-6">
-        <button id="dismissBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full">Dismiss</button>
-        <button id="snoozeBtn" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-full">Snooze 5 min</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     const form = document.getElementById("reminderForm");
-    const alarmSound = document.getElementById("alarmSound");
-
-    const snoozeModal = document.getElementById("snoozeModal");
-    const snoozeMedicine = document.getElementById("snoozeMedicine");
-    const snoozeNote = document.getElementById("snoozeNote");
-    const snoozeBtn = document.getElementById("snoozeBtn");
-    const dismissBtn = document.getElementById("dismissBtn");
-
-    let currentReminderIndex = null;
-
-    // Request Notification permission
-    window.onload = () => {
-      if ("Notification" in window && Notification.permission !== "granted") {
-        Notification.requestPermission();
-      }
-      startReminderCheck();
-    };
 
     // Save reminder
     form.addEventListener("submit", function (e) {
@@ -116,98 +76,7 @@
       alert("Reminder saved successfully!");
       form.reset();
     });
-
-    // Check reminders every 1 second for better responsiveness
-    function startReminderCheck() {
-      setInterval(() => {
-        const now = new Date();
-        const currentTime = now.getHours().toString().padStart(2, '0') + ":" +
-                            now.getMinutes().toString().padStart(2, '0');
-
-        let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
-        let updated = false;
-
-        reminders.forEach((reminder, index) => {
-          let shouldTrigger = false;
-
-          // Check if snoozedUntil exists and is reached
-          if (reminder.snoozedUntil) {
-            const snoozedDate = new Date(reminder.snoozedUntil);
-            if (now >= snoozedDate && !reminder.triggered) {
-              shouldTrigger = true;
-              console.log("Triggering snoozed reminder:", reminder.medicine);
-            }
-          } else if (reminder.time === currentTime) {
-            if (!reminder.triggered || reminder.repeat) {
-              shouldTrigger = true;
-              console.log("Triggering reminder:", reminder.medicine);
-            }
-          }
-
-          if (shouldTrigger) {
-            // Show notification
-            if ("Notification" in window && Notification.permission === "granted") {
-              new Notification(`⏰ Time for ${reminder.medicine}`, {
-                body: reminder.note || "No note provided",
-                icon: "https://cdn-icons-png.flaticon.com/512/10088/10088904.png"
-              });
-            }
-
-            // Play alarm sound
-            alarmSound.currentTime = 0;
-            alarmSound.play().catch(() => {
-              console.log("Alarm sound blocked by browser. Try clicking on the page.");
-            });
-
-            // Show modal with snooze & dismiss
-            showSnoozeModal(reminder, index);
-
-            // Mark as triggered for non-repeat reminders and clear snooze time
-            if (!reminder.repeat) {
-              reminders[index].triggered = true;
-            }
-            reminders[index].snoozedUntil = null;
-            updated = true;
-          }
-        });
-
-        if (updated) {
-          localStorage.setItem("reminders", JSON.stringify(reminders));
-        }
-      }, 1000); // 1 second interval
-    }
-
-    // Show the snooze modal with reminder info
-    function showSnoozeModal(reminder, index) {
-      currentReminderIndex = index;
-      snoozeMedicine.textContent = `Time to take your medicine: ${reminder.medicine}`;
-      snoozeNote.textContent = reminder.note || "";
-      snoozeModal.classList.remove("hidden");
-    }
-
-    // Snooze button: delay 5 minutes
-    snoozeBtn.addEventListener("click", () => {
-      alarmSound.pause();
-      snoozeModal.classList.add("hidden");
-
-      let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
-      if (currentReminderIndex !== null) {
-        const now = new Date();
-        const snoozeTime = new Date(now.getTime() + 5 * 60000); // 5 minutes later
-
-        reminders[currentReminderIndex].snoozedUntil = snoozeTime.toISOString();
-        reminders[currentReminderIndex].triggered = false; // reset triggered for snooze
-        localStorage.setItem("reminders", JSON.stringify(reminders));
-      }
-      currentReminderIndex = null;
-    });
-
-    // Dismiss button: stop alarm and close modal
-    dismissBtn.addEventListener("click", () => {
-      alarmSound.pause();
-      snoozeModal.classList.add("hidden");
-      currentReminderIndex = null;
-    });
   </script>
+  <script src="reminder-alarm.js"></script>
 </body>
 </html>
